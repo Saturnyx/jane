@@ -1,0 +1,30 @@
+{
+    "colors": {
+        "accent": "#40706b",
+        "background": "#0c1414",
+        "light-background": "#142422",
+        "text": "#bdd9d6",
+        "button": "#6aada7",
+        "selection-background": "#6aada7",
+        "selection-text": "#142422",
+        "scrollbar-background": "#40706b",
+        "scrollbar-trough": "#0c1414",
+        "scrollbar-border": "#0c1414",
+        "scrollbar-arrow": "#6aada7",
+        "scrollbar-hover": "#5bbdb7",
+        "scrollbar-active-background": "#40706b",
+        "scrollbar-active-arrow": "#bdd9d6",
+        "scrollbar-disabled-background": "#22302e",
+        "scrollbar-disabled-arrow": "#40706b",
+        "scrollbar-highlight": "#40706b",
+        "scrollbar-shadow": "#0c1414"
+    },
+    "fonts": {
+        "ui-text": "Segoe UI",
+        "ui-heading": "Segoe UI Semibold",
+        "ui-text-size": 13,
+        "ui-heading-size": 18,
+        "editor-text": "Jetbrains Mono",
+        "editor-text-size": 15
+    }
+}
