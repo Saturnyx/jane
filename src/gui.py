@@ -24,8 +24,8 @@ class MainApplication(tk.Frame):
         self.parent.title("JANE")
         screen_width = self.parent.winfo_screenwidth()
         screen_height = self.parent.winfo_screenheight()
-        pos_x = round(screen_width / 2 - width / 2 + x, ndigits=0)
-        pos_y = round(screen_height / 2 - height / 2 + y, ndigits=0)
+        pos_x = int(screen_width / 2 - width / 2 + x)
+        pos_y = int(screen_height / 2 - height / 2 + y)
         self.parent.geometry("{}x{}+{}+{}".format(width, height, pos_x, pos_y))
 
     def set_icon(self):
