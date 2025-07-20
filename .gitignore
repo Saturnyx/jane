@@ -3,3 +3,6 @@
 /.vscode/
 /.idea/
 .env
+
+
+/src/__pycache__/
