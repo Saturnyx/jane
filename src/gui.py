@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import tkinter.ttk as ttk
 import os
 import settings
@@ -7,6 +7,7 @@ import ctypes
 
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
 ICON_PATH = os.path.join(ASSETS_DIR, "icon.ico")
+FILE_PATH =  ""
 
 
 class MainApplication(tk.Frame):
@@ -19,7 +20,7 @@ class MainApplication(tk.Frame):
         self.set_window()
         self.set_icon()
         self.toolbar()
-        self.editor()
+        self.text_widget = self.editor()
 
     def set_dpi(self):
         if hasattr(ctypes, "windll"):
@@ -53,6 +54,27 @@ class MainApplication(tk.Frame):
             print("[ERR] Icon file not found at {}".format(ICON_PATH), flush=True)
 
     def toolbar(self):
+        def open_file():
+            global FILE_PATH
+            FILE_PATH = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+            if FILE_PATH:
+                with open(FILE_PATH, "r", encoding="utf-8") as f:
+                    self.text_widget.delete("1.0", tk.END)
+                    self.text_widget.insert(tk.END, f.read())
+                self.parent.title("JANE - {}".format(os.path.basename(FILE_PATH)))
+
+        def save_file():
+            global FILE_PATH
+            if FILE_PATH != "":
+                with open(FILE_PATH, "w", encoding="utf-8") as f:
+                    f.write(self.text_widget.get("1.0", tk.END))
+            elif FILE_PATH:
+                with open(FILE_PATH, "w", encoding="utf-8") as f:
+                    f.write(self.text_widget.get("1.0", tk.END))
+            else:
+                FILE_PATH = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+                self.parent.title("JANE - {}".format(os.path.basename(FILE_PATH)))
+        
         def action_close():
             self.parent.quit()
 
@@ -138,15 +160,27 @@ class MainApplication(tk.Frame):
             activeforeground=self.theme["colors"]["text"],
             borderwidth=self.config["windows"]["main"]["border-width"],
         )
+        file_menu.add_command(label="Open", command=open_file)
+        file_menu.add_command(label="Save", command=save_file)
+        file_menu.add_separator()
         file_menu.add_command(label="About", command=info)
         file_menu.add_command(label="Close", command=action_close)
-        menubar.add_cascade(label="Help", menu=file_menu)
+        menubar.add_cascade(label="File", menu=file_menu)
         self.parent.config(menu=menubar)
+
+        self.parent.bind('<Control-s>', lambda event: save_file())
+        self.parent.bind('<Control-o>', lambda event: open_file()) 
+        self.parent.bind('<Control-q>', lambda event: action_close())
+        self.parent.bind('<Control-h>', lambda event: info())
+
+
         return menubar
 
     def editor(self):
         editor_frame = tk.Frame(self.parent, bg=self.theme["colors"]["background"])
-        editor_frame.pack(fill=tk.BOTH, expand=True)
+        editor_frame.grid(row=0, column=0, sticky="nsew")
+        self.parent.rowconfigure(0, weight=1)
+        self.parent.columnconfigure(0, weight=1)
 
         style = ttk.Style()
         style.theme_use("clam")
@@ -202,7 +236,9 @@ class MainApplication(tk.Frame):
             undo=True,
             borderwidth=0,
             relief="flat",
-            
+            padx=self.config["windows"]["main"]["padding-x"],
+            pady=self.config["windows"]["main"]["padding-y"],
+            blockcursor=True,
         )
 
         y_scroll = ttk.Scrollbar(

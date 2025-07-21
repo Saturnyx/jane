@@ -6,7 +6,9 @@
       "x": 0,
       "y": 0,
       "scrollbar-width": 0,
-      "border-width": 0
+      "border-width": 0,
+      "padding-x": 20,
+      "padding-y": 20
     }
   }
 }
