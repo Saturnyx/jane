@@ -3,6 +3,7 @@
 /.vscode/
 /.idea/
 .env
+/dist/
 
 
 /src/__pycache__/

@@ -5,9 +5,14 @@ import os
 import settings
 import ctypes
 
+# --- Pygments imports ---
+from pygments import lex
+from pygments.lexers.python import PythonLexer  # Pygments 2.3.1
+from pygments.token import Token
+
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
 ICON_PATH = os.path.join(ASSETS_DIR, "icon.ico")
-FILE_PATH =  ""
+FILE_PATH = ""
 
 
 class MainApplication(tk.Frame):
@@ -18,9 +23,9 @@ class MainApplication(tk.Frame):
         self.theme = settings.theme()
         self.set_dpi()
         self.set_window()
-        self.set_icon()
         self.toolbar()
         self.text_widget = self.editor()
+        self._setup_syntax_highlighting()
 
     def set_dpi(self):
         if hasattr(ctypes, "windll"):
@@ -40,27 +45,23 @@ class MainApplication(tk.Frame):
         y = self.config["windows"]["main"]["y"]
         screen_width = self.parent.winfo_screenwidth()
         screen_height = self.parent.winfo_screenheight()
-        pos_x = int((screen_width - width) / 2)
-        pos_y = int((screen_height - height) / 2)
+        pos_x = int((screen_width - width) / 2)  # type: ignore
+        pos_y = int((screen_height - height) / 2)  # type: ignore
         self.parent.geometry("{}x{}+{}+{}".format(width, height, pos_x, pos_y))
-
-    def set_icon(self):
-        if os.path.exists(ICON_PATH):
-            try:
-                self.parent.iconbitmap(ICON_PATH)
-            except Exception as e:
-                print("[ERR] Could not set window icon: {}".format(e), flush=True)
-        else:
-            print("[ERR] Icon file not found at {}".format(ICON_PATH), flush=True)
+        self.parent.iconbitmap(ICON_PATH)
 
     def toolbar(self):
         def open_file():
             global FILE_PATH
-            FILE_PATH = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+            FILE_PATH = filedialog.askopenfilename(
+                filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+            )
             if FILE_PATH:
                 with open(FILE_PATH, "r", encoding="utf-8") as f:
                     self.text_widget.delete("1.0", tk.END)
-                    self.text_widget.insert(tk.END, f.read())
+                    content = f.read()
+                    self.text_widget.insert(tk.END, content)
+                    self._highlight_syntax(content)
                 self.parent.title("JANE - {}".format(os.path.basename(FILE_PATH)))
 
         def save_file():
@@ -72,9 +73,12 @@ class MainApplication(tk.Frame):
                 with open(FILE_PATH, "w", encoding="utf-8") as f:
                     f.write(self.text_widget.get("1.0", tk.END))
             else:
-                FILE_PATH = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+                FILE_PATH = filedialog.asksaveasfilename(
+                    defaultextension=".txt",
+                    filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
+                )
                 self.parent.title("JANE - {}".format(os.path.basename(FILE_PATH)))
-        
+
         def action_close():
             self.parent.quit()
 
@@ -85,7 +89,7 @@ class MainApplication(tk.Frame):
             dialog.grab_set()
             dialog.resizable(False, False)
             dialog.iconbitmap(ICON_PATH)
-            dialog.configure(bg=self.theme["colors"]["background"])
+            dialog.configure(bg=self.theme["colors"]["background"])  # type: ignore
 
             title = tk.Label(
                 dialog,
@@ -168,11 +172,10 @@ class MainApplication(tk.Frame):
         menubar.add_cascade(label="File", menu=file_menu)
         self.parent.config(menu=menubar)
 
-        self.parent.bind('<Control-s>', lambda event: save_file())
-        self.parent.bind('<Control-o>', lambda event: open_file()) 
-        self.parent.bind('<Control-q>', lambda event: action_close())
-        self.parent.bind('<Control-h>', lambda event: info())
-
+        self.parent.bind("<Control-s>", lambda event: save_file())
+        self.parent.bind("<Control-o>", lambda event: open_file())
+        self.parent.bind("<Control-q>", lambda event: action_close())
+        self.parent.bind("<Control-h>", lambda event: info())
 
         return menubar
 
@@ -183,7 +186,7 @@ class MainApplication(tk.Frame):
         self.parent.columnconfigure(0, weight=1)
 
         style = ttk.Style()
-        style.theme_use("clam")
+        style.theme_use("clam")  # type: ignore
         style.configure(
             "Custom.Vertical.TScrollbar",
             gripcount=0,
@@ -267,3 +270,83 @@ class MainApplication(tk.Frame):
         text_widget.focus_set()
 
         return text_widget
+
+    # --- Syntax Highlighting Setup ---
+    def _setup_syntax_highlighting(self):
+        # Map Pygments token types to theme colors
+        editor_colors = self.theme.get("editor", {})
+        self._token_tag_map = {
+            Token.Keyword: editor_colors.get(
+                "keyword", self.theme["editor"]["keyword"]
+            ),  # good
+            Token.String: editor_colors.get("string", self.theme["editor"]["string"]),
+            Token.Comment: editor_colors.get(
+                "comment", self.theme["editor"]["comment"]
+            ),
+            Token.Name.Function: editor_colors.get(
+                "function", self.theme["editor"]["function"]
+            ),  # good
+            Token.Operator: editor_colors.get(
+                "operator", self.theme["editor"]["operator"]
+            ),  # good
+            Token.Literal.Number: editor_colors.get(
+                "Token.Literal.Number", self.theme["editor"]["number"]
+            ),
+        }
+        # Configure tags in the Text widget
+        for token, color in self._token_tag_map.items():
+            self.text_widget.tag_configure(str(token), foreground=color)
+        # Bind events for real-time highlighting
+        self.text_widget.bind("<KeyRelease>", self._on_text_change)
+
+    def _on_text_change(self, event=None):
+        code = self.text_widget.get("1.0", tk.END)
+        self._highlight_syntax(code)
+
+    def _highlight_syntax(self, code):
+        # Remove previous tags
+        for tag in self.text_widget.tag_names():
+            self.text_widget.tag_remove(tag, "1.0", tk.END)
+        # Apply syntax highlighting
+        idx = 0
+        for ttype, value in lex(code, PythonLexer()):
+            if value == "":
+                continue
+            lines = value.split("\n")
+            for i, line in enumerate(lines):
+                if line == "" and i < len(lines) - 1:
+                    idx += 1
+                    continue
+                start = self._index_from_offset(idx)
+                end = self._index_from_offset(idx + len(line))
+                tag_token = self._get_token_tag(ttype)
+                if tag_token:
+                    self.text_widget.tag_add(str(tag_token), start, end)
+                idx += len(line)
+                if i < len(lines) - 1:
+                    idx += 1
+
+    def _get_token_tag(self, ttype):
+        # Find the closest parent token type that has a color mapping
+        while ttype is not Token and ttype not in self._token_tag_map:
+            ttype = ttype.parent
+        if ttype in self._token_tag_map:
+            return ttype
+        return None
+
+    def _index_from_offset(self, offset):
+        # Convert character offset to Tkinter index
+        code = self.text_widget.get("1.0", tk.END)
+        line = 1
+        col = 0
+        count = 0
+        for c in code:
+            if count == offset:
+                break
+            if c == "\n":
+                line += 1
+                col = 0
+            else:
+                col += 1
+            count += 1
+        return "%d.%d" % (line, col)

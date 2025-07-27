@@ -26,5 +26,13 @@
         "ui-heading-size": 18,
         "editor-text": "Jetbrains Mono",
         "editor-text-size": 15
+    },
+    "editor": {
+        "keyword": "#a68dcd",
+        "string": "#ace88d",
+        "comment": "#808080",
+        "function": "#1760bc",
+        "operator": "#cc8850",
+        "number": "#ffbf0d"
     }
 }
