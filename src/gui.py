@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox, filedialog
+import tkinter.messagebox as messagebox
+import tkinter.filedialog as filedialog
 import tkinter.ttk as ttk
 import os
 import settings
@@ -7,10 +8,19 @@ import ctypes
 
 # --- Pygments imports ---
 from pygments import lex
-from pygments.lexers.python import PythonLexer  # Pygments 2.3.1
+from pygments.lexers.python import PythonLexer
 from pygments.token import Token
 
-ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+import sys
+
+
+def resource_path(relative):
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative)  # type: ignore
+    return os.path.join(os.path.dirname(os.path.dirname(__file__)), relative)
+
+
+ASSETS_DIR = resource_path("assets")
 ICON_PATH = os.path.join(ASSETS_DIR, "icon.ico")
 FILE_PATH = ""
 
@@ -21,13 +31,54 @@ class MainApplication(tk.Frame):
         self.parent = parent
         self.config = config or settings.load()
         self.theme = settings.theme()
-        self.set_dpi()
-        self.set_window()
-        self.toolbar()
-        self.text_widget = self.editor()
+        # Fallback for missing fonts in theme
+        if "fonts" not in self.theme:
+            self.theme["fonts"] = {
+                "ui-text": "Segoe UI",
+                "ui-heading": "Segoe UI Semibold",
+                "ui-text-size": 13,
+                "ui-heading-size": 18,
+                "editor-text": "Courier New",
+                "editor-text-size": 12,
+            }
+        self._set_dpi()
+        self._set_window()
+        self._toolbar()
+        self.text_widget = self._editor()
+        self.current_lexer = PythonLexer()  # Default lexer
         self._setup_syntax_highlighting()
 
-    def set_dpi(self):
+    def _get_lexer_for_filename(self, filename):
+        """Return a Pygments lexer instance based on file extension."""
+        from pygments.lexers import get_lexer_by_name, guess_lexer_for_filename
+
+        ext = os.path.splitext(filename)[1].lower()  # type: ignore
+        # Map common extensions to Pygments lexer names
+        ext_map = {
+            ".py": "python",
+            ".js": "javascript",
+            ".json": "json",
+            ".html": "html",
+            ".css": "css",
+            ".c": "c",
+            ".cpp": "cpp",
+            ".h": "c",
+            ".java": "java",
+            ".md": "markdown",
+            ".xml": "xml",
+            ".sh": "bash",
+            ".bat": "bat",
+            ".ini": "ini",
+            ".txt": "text",
+        }
+        try:
+            if ext in ext_map:
+                return get_lexer_by_name(ext_map[ext])
+            return guess_lexer_for_filename(filename, "")
+        except Exception:
+            return PythonLexer()
+
+    def _set_dpi(self):
         if hasattr(ctypes, "windll"):
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -37,7 +88,7 @@ class MainApplication(tk.Frame):
                 except Exception as e:
                     print("[ERR] Could not set DPI awareness: {}".format(e), flush=True)
 
-    def set_window(self):
+    def _set_window(self):
         self.parent.title("JANE")
         width = self.config["windows"]["main"]["width"]
         height = self.config["windows"]["main"]["height"]
@@ -48,19 +99,24 @@ class MainApplication(tk.Frame):
         pos_x = int((screen_width - width) / 2)  # type: ignore
         pos_y = int((screen_height - height) / 2)  # type: ignore
         self.parent.geometry("{}x{}+{}+{}".format(width, height, pos_x, pos_y))
-        self.parent.iconbitmap(ICON_PATH)
+        try:
+            self.parent.iconbitmap(ICON_PATH)
+        except Exception as e:
+            print("[WARN] Could not set window icon: {}".format(e), flush=True)
 
-    def toolbar(self):
+    def _toolbar(self):
         def open_file():
             global FILE_PATH
             FILE_PATH = filedialog.askopenfilename(
-                filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+                filetypes=[("All Files", "*.*"), ("Text Files", "*.txt")]
             )
             if FILE_PATH:
                 with open(FILE_PATH, "r", encoding="utf-8") as f:
                     self.text_widget.delete("1.0", tk.END)
                     content = f.read()
                     self.text_widget.insert(tk.END, content)
+
+                    self.current_lexer = self._get_lexer_for_filename(FILE_PATH)
                     self._highlight_syntax(content)
                 self.parent.title("JANE - {}".format(os.path.basename(FILE_PATH)))
 
@@ -179,7 +235,7 @@ class MainApplication(tk.Frame):
 
         return menubar
 
-    def editor(self):
+    def _editor(self):
         editor_frame = tk.Frame(self.parent, bg=self.theme["colors"]["background"])
         editor_frame.grid(row=0, column=0, sticky="nsew")
         self.parent.rowconfigure(0, weight=1)
@@ -271,7 +327,6 @@ class MainApplication(tk.Frame):
 
         return text_widget
 
-    # --- Syntax Highlighting Setup ---
     def _setup_syntax_highlighting(self):
         # Map Pygments token types to theme colors
         editor_colors = self.theme.get("editor", {})
@@ -293,23 +348,22 @@ class MainApplication(tk.Frame):
                 "Token.Literal.Number", self.theme["editor"]["number"]
             ),
         }
-        # Configure tags in the Text widget
+
         for token, color in self._token_tag_map.items():
-            self.text_widget.tag_configure(str(token), foreground=color)
-        # Bind events for real-time highlighting
-        self.text_widget.bind("<KeyRelease>", self._on_text_change)
+            self.text_widget.tag_configure(str(token), foreground=color)  # type: ignore
+        self.text_widget.bind("<KeyRelease>", self._on_text_change)  # type: ignore
 
     def _on_text_change(self, event=None):
         code = self.text_widget.get("1.0", tk.END)
         self._highlight_syntax(code)
 
     def _highlight_syntax(self, code):
-        # Remove previous tags
+
         for tag in self.text_widget.tag_names():
             self.text_widget.tag_remove(tag, "1.0", tk.END)
-        # Apply syntax highlighting
+
         idx = 0
-        for ttype, value in lex(code, PythonLexer()):
+        for ttype, value in lex(code, self.current_lexer):
             if value == "":
                 continue
             lines = value.split("\n")
@@ -327,7 +381,6 @@ class MainApplication(tk.Frame):
                     idx += 1
 
     def _get_token_tag(self, ttype):
-        # Find the closest parent token type that has a color mapping
         while ttype is not Token and ttype not in self._token_tag_map:
             ttype = ttype.parent
         if ttype in self._token_tag_map:
@@ -335,7 +388,6 @@ class MainApplication(tk.Frame):
         return None
 
     def _index_from_offset(self, offset):
-        # Convert character offset to Tkinter index
         code = self.text_widget.get("1.0", tk.END)
         line = 1
         col = 0

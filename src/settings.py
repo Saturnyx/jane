@@ -23,7 +23,6 @@ def load():
         except ValueError:
             return hardcoded
 
-
 def theme():
     """
     Returns the theme settings.
