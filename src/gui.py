@@ -3,7 +3,7 @@ import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 import tkinter.ttk as ttk
 import os
-import settings
+from . import settings
 import ctypes
 
 # --- Pygments imports ---
@@ -15,6 +15,11 @@ import sys
 
 
 def resource_path(relative):
+    if getattr(sys, "frozen", False):
+        base_path = os.path.dirname(sys.executable)
+        path = os.path.join(base_path, relative)
+        if os.path.exists(path):
+            return path
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, relative)  # type: ignore
     return os.path.join(os.path.dirname(os.path.dirname(__file__)), relative)
@@ -53,7 +58,6 @@ class MainApplication(tk.Frame):
         from pygments.lexers import get_lexer_by_name, guess_lexer_for_filename
 
         ext = os.path.splitext(filename)[1].lower()  # type: ignore
-        # Map common extensions to Pygments lexer names
         ext_map = {
             ".py": "python",
             ".js": "javascript",

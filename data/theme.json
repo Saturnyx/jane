@@ -24,7 +24,7 @@
         "ui-heading": "Segoe UI Semibold",
         "ui-text-size": 13,
         "ui-heading-size": 18,
-        "editor-text": "Jetbrains Mono",
+        "editor-text": "Consolas",
         "editor-text-size": 15
     },
     "editor": {

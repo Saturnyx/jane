@@ -21,6 +21,7 @@ data_files = [
         "data",
         [os.path.join("data", "settings.json"), os.path.join("data", "theme.json")],
     ),
+    # gui.py and settings.py are now included as part of the src package
 ]
 
 MAIN_SCRIPT = os.path.join("src", "main.py")
@@ -47,33 +48,34 @@ setup(
                 "pygments",
                 "pygments.lexers.python",
                 "pygments.token",
+                "src.gui",
+                "src.settings",
             ],
-            "bundle_files": 3,  # Use separate files for DLLs and tkinter compatibility
+            "bundle_files": 3,
             "compressed": True,
             "optimize": 2,
             "dll_excludes": [
-                "MSVCP90.dll",  # For XP compatibility
+                "MSVCP90.dll",
             ],
+            "packages": ["src"],
         }
     },
     data_files=data_files,
-    zipfile=None,  # Bundle everything into the exe
+    zipfile=None,
 )
+# if os.path.exists("dist/assets"):
+#     shutil.rmtree("dist/assets")
+# if os.path.exists("assets"):
+#     shutil.copytree("assets", "dist/assets")
+# if os.path.exists("dist/data"):
+#     shutil.rmtree("dist/data")
+# if os.path.exists("data"):
+#     shutil.copytree("data", "dist/data")
+# # Post-build: copy gui.py and settings.py from src to dist
+# import glob
 
-# Post-build: copy assets and data to dist/ after py2exe build
-if os.path.exists("dist/assets"):
-    shutil.rmtree("dist/assets")
-if os.path.exists("assets"):
-    shutil.copytree("assets", "dist/assets")
-if os.path.exists("dist/data"):
-    shutil.rmtree("dist/data")
-if os.path.exists("data"):
-    shutil.copytree("data", "dist/data")
-# Post-build: copy gui.py and settings.py from src to dist
-import glob
-
-for fname in ["gui.py", "settings.py"]:
-    src_path = os.path.join("src", fname)
-    dst_path = os.path.join("dist", fname)
-    if os.path.exists(src_path):
-        shutil.copy2(src_path, dst_path)
+# for fname in ["gui.py", "settings.py"]:
+#     src_path = os.path.join("src", fname)
+#     dst_path = os.path.join("dist", fname)
+#     if os.path.exists(src_path):
+#         shutil.copy2(src_path, dst_path)
