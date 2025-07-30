@@ -222,7 +222,7 @@ class MainApplication(tk.Frame):
 
             text = tk.Label(
                 dialog,
-                text="Just Another Notepad Editor\n\nS.Harshal\nVersion 0.1.0\nMIT License",
+                text="Just Another Notepad Editor\n\nS.Harshal\nVersion 1.2.1\nMIT License",
                 font=("Segoe UI", 12),
                 fg=self.theme["colors"]["text"],
                 bg=self.theme["colors"]["background"],

@@ -84,7 +84,7 @@ def theme():
     theme_path = _get_data_path("theme.json")
     if not os.path.exists(theme_path):
         print("[ERR] Theme file not found", flush=True)
-        return hardcoded_theme 
+        return hardcoded_theme
     with open(theme_path, "r", encoding="utf-8") as f:
         try:
             print("[INF] Theme file loaded successfully.", flush=True)

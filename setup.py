@@ -8,7 +8,7 @@ if "py2exe" not in sys.argv:
     sys.argv.append("py2exe")
 
 APP_NAME = "JANE"
-VERSION = "1.0"
+VERSION = "1.2.1"
 DESCRIPTION = "JANE - A simple Python Tkinter editor for Windows XP (Python 3.4)"
 AUTHOR = "Saturnyx"
 ICON_PATH = os.path.join("assets", "icon.ico")
