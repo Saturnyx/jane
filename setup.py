@@ -4,7 +4,6 @@ import sys
 import os
 import shutil
 
-# Ensure py2exe is a command-line argument
 if "py2exe" not in sys.argv:
     sys.argv.append("py2exe")
 
@@ -14,14 +13,12 @@ DESCRIPTION = "JANE - A simple Python Tkinter editor for Windows XP (Python 3.4)
 AUTHOR = "Saturnyx"
 ICON_PATH = os.path.join("assets", "icon.ico")
 
-# Data files to include (assets, data)
 data_files = [
     ("assets", [os.path.join("assets", "icon.ico")]),
     (
         "data",
         [os.path.join("data", "settings.json"), os.path.join("data", "theme.json")],
     ),
-    # gui.py and settings.py are now included as part of the src package
 ]
 
 MAIN_SCRIPT = os.path.join("src", "main.py")
@@ -47,6 +44,32 @@ setup(
                 "json",
                 "pygments",
                 "pygments.lexers.python",
+                "pygments.lexers.c_cpp",
+                "pygments.lexers.jvm",
+                "pygments.lexers.markup",
+                "pygments.lexers.math",
+                "pygments.lexers.scripting",
+                "pygments.lexers.configs",
+                "pygments.lexers.data",
+                "pygments.lexers.dotnet",
+                "pygments.lexers.agile",
+                "pygments.lexers.asm",
+                "pygments.lexers.business",
+                "pygments.lexers.compiled",
+                "pygments.lexers.functional",
+                "pygments.lexers.other",
+                "pygments.lexers.parsers",
+                "pygments.lexers.prolog",
+                "pygments.lexers.templates",
+                "pygments.lexers.textedit",
+                "pygments.lexers.web",
+                "pygments.lexers.math",
+                "pygments.lexers.special",
+                "pygments.lexers.dsls",
+                "pygments.lexers.rebol",
+                "pygments.lexers.sql",
+                "pygments.lexers.shell",
+                "pygments.lexers._mapping",
                 "pygments.token",
                 "src.gui",
                 "src.settings",
@@ -63,19 +86,3 @@ setup(
     data_files=data_files,
     zipfile=None,
 )
-# if os.path.exists("dist/assets"):
-#     shutil.rmtree("dist/assets")
-# if os.path.exists("assets"):
-#     shutil.copytree("assets", "dist/assets")
-# if os.path.exists("dist/data"):
-#     shutil.rmtree("dist/data")
-# if os.path.exists("data"):
-#     shutil.copytree("data", "dist/data")
-# # Post-build: copy gui.py and settings.py from src to dist
-# import glob
-
-# for fname in ["gui.py", "settings.py"]:
-#     src_path = os.path.join("src", fname)
-#     dst_path = os.path.join("dist", fname)
-#     if os.path.exists(src_path):
-#         shutil.copy2(src_path, dst_path)

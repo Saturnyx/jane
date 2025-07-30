@@ -12,6 +12,8 @@ except ImportError:
         base_dir = os.path.abspath(os.path.dirname(sys.argv[0]))  # type: ignore
     sys.path.insert(0, base_dir)
     from src.gui import *
+except:
+    from gui import *
 
 if __name__ == "__main__":
     root = tk.Tk()  # type: ignore

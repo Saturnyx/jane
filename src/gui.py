@@ -6,12 +6,12 @@ import os
 from . import settings
 import ctypes
 
-# --- Pygments imports ---
 from pygments import lex
 from pygments.lexers.python import PythonLexer
 from pygments.token import Token
 
 import sys
+import os
 
 
 def resource_path(relative):
@@ -36,7 +36,6 @@ class MainApplication(tk.Frame):
         self.parent = parent
         self.config = config or settings.load()
         self.theme = settings.theme()
-        # Fallback for missing fonts in theme
         if "fonts" not in self.theme:
             self.theme["fonts"] = {
                 "ui-text": "Segoe UI",
@@ -58,6 +57,12 @@ class MainApplication(tk.Frame):
         from pygments.lexers import get_lexer_by_name, guess_lexer_for_filename
 
         ext = os.path.splitext(filename)[1].lower()  # type: ignore
+        print(
+            "[DEBUG] _get_lexer_for_filename called with filename:",
+            filename,
+            flush=True,
+        )
+        print("[DEBUG] Extracted extension:", ext, flush=True)
         ext_map = {
             ".py": "python",
             ".js": "javascript",
@@ -77,9 +82,16 @@ class MainApplication(tk.Frame):
         }
         try:
             if ext in ext_map:
-                return get_lexer_by_name(ext_map[ext])
-            return guess_lexer_for_filename(filename, "")
-        except Exception:
+                print("[DEBUG] Using get_lexer_by_name for:", ext_map[ext], flush=True)
+                lexer = get_lexer_by_name(ext_map[ext])
+                print("[DEBUG] Lexer returned:", lexer, flush=True)
+                return lexer
+            print("[DEBUG] Using guess_lexer_for_filename for:", filename, flush=True)
+            lexer = guess_lexer_for_filename(filename, "")
+            print("[DEBUG] Lexer returned:", lexer, flush=True)
+            return lexer
+        except Exception as e:
+            print("[DEBUG] Exception in _get_lexer_for_filename:", e, flush=True)
             return PythonLexer()
 
     def _set_dpi(self):
@@ -112,32 +124,76 @@ class MainApplication(tk.Frame):
         def open_file():
             global FILE_PATH
             FILE_PATH = filedialog.askopenfilename(
-                filetypes=[("All Files", "*.*"), ("Text Files", "*.txt")]
+                filetypes=[
+                    ("All Files", "*.*"),
+                    ("Text Files", "*.txt"),
+                    ("C++ Files", "*.cpp"),
+                    ("Python Files", "*.py"),
+                    ("C Files", "*.c"),
+                    ("Java Files", "*.java"),
+                ]
             )
+            print("[DEBUG] open_file selected FILE_PATH:", FILE_PATH, flush=True)
             if FILE_PATH:
                 with open(FILE_PATH, "r", encoding="utf-8") as f:
                     self.text_widget.delete("1.0", tk.END)
                     content = f.read()
                     self.text_widget.insert(tk.END, content)
-
-                    self.current_lexer = self._get_lexer_for_filename(FILE_PATH)
-                    self._highlight_syntax(content)
+                self.current_lexer = self._get_lexer_for_filename(FILE_PATH)
+                print(
+                    "[DEBUG] open_file set current_lexer to:",
+                    self.current_lexer,
+                    flush=True,
+                )
+                self._highlight_syntax(self.text_widget.get("1.0", tk.END))
                 self.parent.title("JANE - {}".format(os.path.basename(FILE_PATH)))
 
         def save_file():
             global FILE_PATH
+            print("[DEBUG] save_file current FILE_PATH:", FILE_PATH, flush=True)
             if FILE_PATH != "":
                 with open(FILE_PATH, "w", encoding="utf-8") as f:
                     f.write(self.text_widget.get("1.0", tk.END))
+
+                self.current_le  # type: ignore
+                print(
+                    "[DEBUG] save_file set current_lexer to:",
+                    self.current_lexer,
+                    flush=True,
+                )
+                self._highlight_syntax(self.text_widget.get("1.0", tk.END))
             elif FILE_PATH:
                 with open(FILE_PATH, "w", encoding="utf-8") as f:
                     f.write(self.text_widget.get("1.0", tk.END))
+                self.current_lexer = self._get_lexer_for_filename(FILE_PATH)
+                print(
+                    "[DEBUG] save_file set current_lexer to:",
+                    self.current_lexer,
+                    flush=True,
+                )
+                self._highlight_syntax(self.text_widget.get("1.0", tk.END))
             else:
                 FILE_PATH = filedialog.asksaveasfilename(
                     defaultextension=".txt",
-                    filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
+                    filetypes=[
+                        ("Text Files", "*.txt"),
+                        ("All Files", "*.*"),
+                        ("C++ Files", "*.cpp"),
+                        ("Python Files", "*.py"),
+                        ("C Files", "*.c"),
+                        ("Java Files", "*.java"),
+                    ],
                 )
+                print("[DEBUG] save_file new FILE_PATH:", FILE_PATH, flush=True)
                 self.parent.title("JANE - {}".format(os.path.basename(FILE_PATH)))
+                if FILE_PATH:
+                    self.current_lexer = self._get_lexer_for_filename(FILE_PATH)
+                    print(
+                        "[DEBUG] save_file set current_lexer to:",
+                        self.current_lexer,
+                        flush=True,
+                    )
+                    self._highlight_syntax(self.text_widget.get("1.0", tk.END))
 
         def action_close():
             self.parent.quit()
@@ -201,6 +257,42 @@ class MainApplication(tk.Frame):
             )
             dialog.geometry("+{}+{}".format(x, y))
 
+        def terminal():
+            """Opens the directory in the terminal"""
+            global FILE_PATH
+            dir_path = os.path.dirname(FILE_PATH) if FILE_PATH else os.getcwd()
+            os.system('start cmd /K cd /d "{}"'.format(dir_path))
+
+        def edit_theme():
+            theme_path = os.path.join("data", "theme.json")
+            if os.path.exists(theme_path):
+                with open(theme_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                self.text_widget.delete("1.0", tk.END)
+                self.text_widget.insert(tk.END, content)
+                self.current_lexer = self._get_lexer_for_filename(theme_path)
+                self._highlight_syntax(content)
+                self.parent.title("JANE - theme.json")
+            else:
+                messagebox.showerror(
+                    "Error", "theme.json not found in data/ directory."
+                )
+
+        def edit_settings():
+            settings_path = os.path.join("data", "settings.json")
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                self.text_widget.delete("1.0", tk.END)
+                self.text_widget.insert(tk.END, content)
+                self.current_lexer = self._get_lexer_for_filename(settings_path)
+                self._highlight_syntax(content)
+                self.parent.title("JANE - settings.json")
+            else:
+                messagebox.showerror(
+                    "Error", "settings.json not found in data/ directory."
+                )
+
         menu_font = (
             self.theme["fonts"]["ui-text"],
             self.theme["fonts"]["ui-text-size"],
@@ -224,18 +316,47 @@ class MainApplication(tk.Frame):
             activeforeground=self.theme["colors"]["text"],
             borderwidth=self.config["windows"]["main"]["border-width"],
         )
+        tool_menu = tk.Menu(
+            menubar,
+            tearoff=0,
+            font=menu_font,
+            background=self.theme["colors"]["background"],
+            foreground=self.theme["colors"]["text"],
+            activebackground=self.theme["colors"]["accent"],
+            activeforeground=self.theme["colors"]["text"],
+            borderwidth=self.config["windows"]["main"]["border-width"],
+        )
+        help_menu = tk.Menu(
+            menubar,
+            tearoff=0,
+            font=menu_font,
+            background=self.theme["colors"]["background"],
+            foreground=self.theme["colors"]["text"],
+            activebackground=self.theme["colors"]["accent"],
+            activeforeground=self.theme["colors"]["text"],
+            borderwidth=self.config["windows"]["main"]["border-width"],
+        )
         file_menu.add_command(label="Open", command=open_file)
         file_menu.add_command(label="Save", command=save_file)
         file_menu.add_separator()
-        file_menu.add_command(label="About", command=info)
+        file_menu.add_command(label="Theme", command=edit_theme)
+        file_menu.add_command(label="Settings", command=edit_settings)
+        file_menu.add_separator()
         file_menu.add_command(label="Close", command=action_close)
+        help_menu.add_command(label="About", command=info)
+        tool_menu.add_command(label="Terminal", command=terminal)
         menubar.add_cascade(label="File", menu=file_menu)
+        menubar.add_cascade(label="Tools", menu=tool_menu)
+        menubar.add_cascade(label="Help", menu=help_menu)
         self.parent.config(menu=menubar)
 
         self.parent.bind("<Control-s>", lambda event: save_file())
         self.parent.bind("<Control-o>", lambda event: open_file())
         self.parent.bind("<Control-q>", lambda event: action_close())
         self.parent.bind("<Control-h>", lambda event: info())
+        self.parent.bind("<Control-t>", lambda event: terminal())
+        self.parent.bind("<Control-k>", lambda event: edit_theme())
+        self.parent.bind("<Control-g>", lambda event: edit_settings())
 
         return menubar
 
@@ -332,7 +453,6 @@ class MainApplication(tk.Frame):
         return text_widget
 
     def _setup_syntax_highlighting(self):
-        # Map Pygments token types to theme colors
         editor_colors = self.theme.get("editor", {})
         self._token_tag_map = {
             Token.Keyword: editor_colors.get(
